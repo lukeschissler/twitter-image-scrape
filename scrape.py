@@ -1,31 +1,35 @@
+from dotenv import load_dotenv
 import requests
 import os
 import time as t
-import json
-import hashlib
+import sys, argparse
 
-# Set environment variables
-os.environ[
-    "BEARER_TOKEN"
-] = "AAAAAAAAAAAAAAAAAAAAABAlcAEAAAAAi%2FiM4VF9DTDLyUEcfBnDUq5zvso%3DMSUWJCqMuvV6H3dhiGPsfkqs05StBRwRFxDhED0jVpSjgSsA0q"
+parser=argparse.ArgumentParser()
+parser.add_argument('--id', help='twitter user to query')
+args=parser.parse_args()
 
-# Get environment variables
+# Load env variables
+load_dotenv()
+
+# Set env variables
 BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
 
-search_url = "https://api.twitter.com/2/users/1870785781/tweets"
+default_id = 1870785781
+user_id = args.id if args.id else default_id
+print(user_id)
+search_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
 max_images = 2000
-
-def bearer_oauth(r):
-
-    r.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
-    return r
-
 
 query_params = {
     "expansions": "attachments.media_keys",
     "media.fields": "url",
     "max_results": "100",
 }
+
+def bearer_oauth(r):
+
+    r.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
+    return r
 
 def setup_env():
     time_hash = str(t.time())[11:]
@@ -48,7 +52,7 @@ def extract_urls(json_response):
     )
     return [x["url"] for x in valid_content]
 
-def download_images(image_urls, counter):
+def download_images(image_urls, counter, folder):
     for url in image_urls:
         res = requests.get(url)
         with open(f"{folder}/img_{counter}.png", "wb") as f:
@@ -66,7 +70,7 @@ def main():
 
         json_response = connect_to_endpoint(search_url, query_params)
         image_urls = extract_urls(json_response)
-        download_images(image_urls, counter)
+        download_images(image_urls, counter, folder)
 
         pagination_token = json_response["meta"]["next_token"]
         counter += len(image_urls)
