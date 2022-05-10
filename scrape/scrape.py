@@ -4,9 +4,9 @@ import os
 import time as t
 import sys, argparse
 
-parser=argparse.ArgumentParser()
-parser.add_argument('--id', help='twitter user to query')
-args=parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument("--id", help="twitter user to query")
+args = parser.parse_args()
 
 # Load env variables
 load_dotenv()
@@ -16,7 +16,6 @@ BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
 
 default_id = 1870785781
 user_id = args.id if args.id else default_id
-print(user_id)
 search_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
 max_images = 2000
 
@@ -26,10 +25,12 @@ query_params = {
     "max_results": "100",
 }
 
+
 def bearer_oauth(r):
 
     r.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
     return r
+
 
 def setup_env():
     time_hash = str(t.time())[11:]
@@ -40,17 +41,19 @@ def setup_env():
 
 
 def connect_to_endpoint(url, params):
-    response = requests.get(url, auth=bearer_oauth, params=params)
-    print(response.status_code)
-    if response.status_code != 200:
-        raise Exception(response.status_code, response.text)
-    return response.json()
+    res = requests.get(url, auth=bearer_oauth, params=params)
+    print(res.status_code)
+    if res.status_code != 200:
+        raise Exception(res.status_code, res.text)
+    return res.json()
+
 
 def extract_urls(json_response):
     valid_content = list(
         filter(lambda x: "url" in x, json_response["includes"]["media"])
     )
     return [x["url"] for x in valid_content]
+
 
 def download_images(image_urls, counter, folder):
     for url in image_urls:
@@ -63,13 +66,14 @@ def download_images(image_urls, counter, folder):
 def main():
     pagination_token = ""
     counter = 0
+    folder = setup_env()
     while counter <= max_images:
-        folder = setup_env()
         if counter != 0:
             query_params["pagination_token"] = pagination_token
 
         json_response = connect_to_endpoint(search_url, query_params)
         image_urls = extract_urls(json_response)
+
         download_images(image_urls, counter, folder)
 
         pagination_token = json_response["meta"]["next_token"]
